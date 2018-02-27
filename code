@@ -1,0 +1,382 @@
+# Forecasting-with-R
+TIme Series Forecasting with R
+---
+title: "Forecast of Nestle Chocolate Sale" 
+author: "Mohammad Minul Islam"
+date: "December 10, 2017"
+fontsize: 12pt
+output:
+  pdf_document:
+    toc: yes
+    toc_depth: 2
+    highlight: monochrome
+  html_document:
+    df_print: paged
+    fontsize: 12
+    highlight: monochrome
+    theme: paper
+    toc: yes
+    toc_depth: 2
+---
+\newpage
+```{r}
+# load libraries
+library(fpp)
+library(neuralnet)
+library(vars)
+
+# import data 
+y1 <- read.csv("C:/Users/minul/Documents/Working/__Fall2017/3 Economic Forecasting and Analysis/Term Project/Nestle_Choc_Sales.csv")
+# time series prparation for Nestle Chocolate Sales 
+y<-ts(data=y1[,3],start=c(2003,1),end=c(2017,2),frequency=4)
+
+#for var method
+var_data <- read.csv("C:/Users/minul/Documents/Working/__Fall2017/3 Economic Forecasting and Analysis/Term Project/Nestle Choco Sales Var.csv")
+df =var_data 
+# define as time series
+df = ts(df, start=2003, frequency=4)
+# extract sales and plot data
+y_var = df[ ,"Sales" ]
+
+```
+\newpage
+# Executive Summary
+
+Nestle chocolate sale was strong till 2007, while there was an early alarm of dropping in chocolate sale around 2008-09, which was not taken into consideration as there is no mention of any such observation in their company publications. The sale started to drop in 2008-09 and reached 15 years low around in 2010 which the company attributed to the crisis in Russia. However, it was only the end of a streak sales performance. In order to forecast the Nestle chocolate sales, various methods had been utilized and compared with other methods quantitatively. Based on the quantitative result, it has been deduced that Holt-Winters yield the best result. A prediction of Nestle Global Chocolate sales has been made till 2018. 
+
+Please note, even a week before, it seemed ETS is a sure winner but looking closely at data, it was understood, the seasonality in data not multiplicative. Accordingly, the forecasting method for holt-winter was changed from multiplicative to additive. And as result, a better forecast has been generated.
+ 
+
+\newpage  
+```{r}
+
+```
+# Introduction
+
+Nestle chocolate sales data from 2003 Q1 to 2017 Q2 has been collected from Bloomberg terminal and nestle corporate publication. The objective of the exercise was to apply different forecast methodologies to predict the sales of Nestle chocolate sale for 6 quarter in future. Before moving in the forecast methods, let us look into the data closely. 
+```{r}
+
+```
+## The Data
+```{r}
+y
+#Looking at Data
+plot(y, main="Nestle Chocolate Sale",  xlab="Year", ylab="Million CHF",col = 'red')
+```
+There is strong presence of seasonality and trend in the data. And it seems the sales dropped significantly in 2010 and onward. Around 2005-2008 there is a positive trend, while there is a drop during 2010-2013 and later the trend is negatively slopped.
+\pagebreak
+\newpage
+```{r}
+
+```
+##  Seasonalize Data 
+```{r}
+monthplot(y, main= "Seasonalized Nestle Chocolate Sale", ylab="Million CHF", col='red')
+
+```
+Seasonal chart shows strong seasonality with peak in Q4 and lowest in Q2. Sales pick up in Q3 and start to drop in Q1. Over the year there is significant change in sales.The presence of seasonality and trend indicates the data violates the assumption of stationary data as required by ARIMA method. Lest take a seasonal difference.
+\pagebreak
+```{r}
+
+```
+## YearWise Data 
+```{r}
+seasonplot(y,main= "Yearwise Nestle Chocolate", col=1:15,year.labels = TRUE)
+```
+The seasonal chart shows strong seasonality with peak in Q4 and lowest in Q2. Sales pick up in Q3 and start to drop in Q1. Over the year there is significant change in sales.
+\pagebreak
+```{r}
+
+```
+## Seasonally Differenced Data
+```{r}
+tsdisplay(diff(y,4))
+
+```
+The seasonally differenced data shows there is significant spike a lag 3 both in ACF and PACF PACT shows lag at 3,4,7. However, the first order of difference significantly improve the stationary aspect of the sales data.
+\pagebreak 
+```{r}
+
+```
+## Correlogram
+```{r}
+Acf(y, col='red')
+
+```
+The correlogram shows positive correlation in period 4,8,12 & 16 and negative correlation in period 6,10 & 14.
+\pagebreak
+```{r}
+
+```
+## Histrogram
+```{r}
+hist(y, main= "Histogram of Nestle Chocolate Sale", xlab="Sales in MM CHF",  ylab = "Frequenc")
+```
+The histrogram shows sales are not normally distributed.
+\pagebreak
+```{r}
+
+```
+# Forecast Methodologies 
+ Several methods of will be applied for forecasting in this chapter. The data set will be separated into training and test sections. The model will be developed based on the trained data set and the accuracy of the model will be tested using the test data set. We will start the experimentation with simpler methods like Mean, Naïve and Seasonal Naïve and will proceed towards more complicated methods. 
+```{r}
+# set trainning data
+y_trn<-window(y,start=c(2003,1),end=c(2015,4))
+
+# set the test data
+y_test<-window(y,start=c(2016,1),end=c(2017,2))
+
+h=length(y_test) #time horizon of forecast
+```
+\pagebreak
+```{r}
+
+```
+## Mean, Naïve and Seasonal Naïve
+```{r}
+f_y_m<-meanf(y_trn,h=h)     #simple mean(m)
+f_y_n<-naive(y_trn,h=h)     #naive (n)
+f_y_sn<-snaive(y_trn,h=h)   #season naive (sn)
+plot(y,col='black', main='Nestle Chocolate Sale Forecast: Simple Methods', ylab="Million CHF",type='o')
+lines(f_y_m$mean,lty=2,col='blue')
+lines(f_y_n$mean,lty=4,col='green')
+lines(f_y_sn$mean,lty=6,col='brown')
+legend("topright",lty=c(1,2,2),col=c('black','blue','green','brown'),
+       legend=c("Actual","Mean","Naïve","Seasonal Naïve"),bty="n")
+```
+ While seasonal vanithese simple methods will be the best forecasting method available. But in many cases, these methods will serve as benchmarks rather than the method of choice. That is, whatever forecasting methods we develop, they will be compared to these simple methods to ensure that the new method is better than these simple alternatives. If not, the new method is not worth considering.
+\pagebreak
+```{r}
+
+```
+## Linear Trend
+```{r}
+#Linear trend analysis without seasonality (ltsWs)
+fit_y_ltsWs<-tslm(y_trn ~ trend) 
+f_y_ltsWs<-forecast(fit_y_ltsWs,h=h,level=FALSE)   
+
+#Linear trend analysis with seasonality (lts)
+fit_y_lts<-tslm(y_trn ~ trend + season) 
+f_y_lts<-forecast(fit_y_lts,h=h,level=FALSE)      
+
+plot(y,col='black', main='Nestle Chocolate Sale Forecast: Simple Linear Trend', ylab="Million CHF",type='o')
+lines(f_y_ltsWs$mean,lty=2,col='blue')
+lines(f_y_lts$mean,lty=4,col='brown')
+legend("topright",lty=c(1,2,2),col=c('black','blue','brown'),
+       legend=c("Actual","Linear Trend without Seasonality","Linear Trend with Seasonality"),bty="n")
+```
+Using trend of time serie,  we can run regresion to train the model and forecast the trend. Using seasonality yields better forecast than the one without.  
+\pagebreak
+```{r}
+
+```
+## Seasonal and Trend Decomposition 
+```{r}
+y.stl <- stl(y_trn, t.window=15, s.window="periodic", robust=TRUE)
+f_y_stl<- forecast(y.stl, method="rwdrift",h=h)
+plot(y,col='black', main='Nestle Chocolate Sale Forecast: STL with Drift', ylab="Million CHF",type='o')
+lines(f_y_stl$mean,lty=2,col='blue')
+```
+STL is a robust method for time series decomposition. The smoothness of trend can be controlled by user through t.window parameter. However, the method does not allow for multiplicative seasonality and unable to handle calendar variation automatically.
+\pagebreak
+```{r}
+
+```
+## Smoothing
+```{r}
+# Simple exponential smoothing
+f_y_se <- ses(y_trn, h = h)
+
+# holt winter's  method
+f_y_hw <- hw(y_trn, seasonal="additive", h=h) 
+
+
+#ETS
+y.ets <- ets(y_trn, model="ZZZ") 
+f_y_ets <- forecast(y.ets, h=h)
+
+
+plot(y,col='black', main='Nestle Chocolate Sale Forecast (Exponential Smoothing)', ylab="Million CHF",type='o')
+lines(f_y_se$mean,lty=2,col='red')
+lines(f_y_hw$mean,lty=2,col='blue')
+lines(f_y_ets$mean,lty=4,col='green')
+legend("topright",lty=c(1,2,2),col=c('black','red','blue','green'),
+       legend=c("Actual","Simple Exponential","Holt-Winter","ETS"),bty="n")
+```
+Simple exponential smoothing method forecast is suitable for forecasting data with no trend or seasonal pattern. Hence it does yield good result for our analysis. 
+
+The Holt-Winters seasonal method comprises of three smoothing equations - level, trend and for the seasonal component. If the seasonal variations do not change significantly across time, the additive method works fine. The multiplicative method is preferred if there is change in seasonality. 
+In our case additive seasonality will yield better result due to the nature of data. Holt-winter's multiplicative seasonality method is used for forecast as the seasonal variation is changing with time. 
+
+Forecast is generate by ETS(M,N,M) method meaning R selected the model based on multiplicative error, no trend and multiplicative seasonality. 
+
+\pagebreak
+```{r}
+
+```
+## Arima
+```{r}
+#Arima test
+adf.test(y_trn, alternative = "stationary")
+kpss.test(y_trn)
+ndiffs(y_trn)
+```
+ARIMA method require the data to be stationary. Before working with the model, lets look if we are required to take difference of the data for applying ARIMA.
+The KPSS test yields p value of 0.093 indicating differencing is not required and ndiffs value is also zero, which means the data is stationary. However, we know there is trend and seasonality. A plausible explanation may be the model treat that as cycle and as the seasonality is constant over time, it was considered as stationary.
+
+```{r}
+#We are going to use auto arima forecast
+fit_y_arima<- auto.arima(y_trn,stepwise=FALSE, approximation=FALSE)
+f_y_arima<-forecast(fit_y_arima,h=h)
+plot(y,col='black', main='Nestle Chocolate Sale Forecast (ARIMA)', ylab="Million CHF",type='o')
+lines(f_y_arima$mean,lty=2,col='blue')
+```
+\pagebreak
+```{r}
+```
+## Variable Auto Regression
+```{r}
+vardata = log (df[,c(4,5,3)])
+colnames(vardata) = c("GDP_OECD", "GDP_BRI","Sales")
+plot(vardata, main = "VAR data", xlab = "")
+```
+The major sales of Chocolate are driven by demand factors - one the base demand, coming from advanced economies and the growing demand from emerging economies. 
+The advanced economies are at saturation level of chocolate consumption hence no significant growth is expected from these countries, but sales might go down due to change in economic condition of these countries. To understand the relationship of chocolate sales and advanced economics the current price GDP of 25 former OECE member countries has been used (shown as GDP_OECD). The countries are Australia, Austria, Belgium, Canada, Denmark, Finland, France, Germany, Greece, Iceland, Ireland, Italy, Japan, Luxembourg, Mexico, Netherlands, New Zealand, Norway, Portugal, Spain, Sweden, Switzerland, Turkey, United Kingdom and United States. Data at current prices reported by member countries are converted using current GDP PPPs. Zone aggregates at current prices and PPPs are calculated by sum of the series thus converted. 
+The GDP_OECD grows smoothing till 2008 and then takes a dip but keeps on following the smooth growth 2010 onwards. 
+
+To understand the sales of chocolate driven by emerging economics the aggregate GDP from Brazil, Russia and India has been calculated Data at current prices converted using current GDP PPPs. Due to unavailability y of quarterly GDP from China, it was excluded. The aggregate GDP has been mentioned as GDP_BRI
+THE GDP_BRI grows smoothly then the financial crisis of 2008, the war in Russian in 2009 introduce erratic movement in the GDP. 2010 onwards the GDP is increasing smoothly.
+
+Lets now look at the correlation the variables with Chocolate sale
+
+```{r}
+cor(df[,3:5])
+```
+The correlation GDP_BRI is very loosely correlated with Chocolate sales compare to GDP_OECD. However interesting to note, with increasing GDP sale of chocolate reduces. As the correlation of GDP_BRI is very weak with chocolate sales, let us remove that from analysis.
+
+```{r}
+vardata = log (df[,c(4,3)])
+var_selection = VARselect(vardata,lag.max =9, season =4)
+var_selection$selection
+```
+The var selection shows Chocolate sales lag by 2 quarters from GDP_ OECD
+
+```{r}
+var_cho = VAR(vardata, p=var_selection$selection[3], season =4)
+summary(var_cho)
+roots(var_cho)
+```
+All the roots are less than 1 which means we can apply the var methodology. 
+
+```{r}
+acf(residuals(var_cho))
+```
+Residuals from the var model does not show significant spikes and mostly random. Roots are less than 1. Hence we can conclude the model is good.
+```{r}
+causality(var_cho, cause= 'GDP_OECD' )
+```
+
+```{r}
+# impulse responses
+var_cho.irf <- irf(var_cho,  n.ahead = 16, boot = TRUE,  runs=100, seed=99, cumulative=TRUE)
+par(mfrow=c(2,2))
+plot(var_cho.irf, plot.type = "single")
+par(mfrow=c(1,1))
+```
+Impulse in GDP does not impact chocolate sales
+```{r}
+# fevd
+fevd(var_cho, n.ahead = 16)
+```
+11% of the variablity in sales is dependent on GDP of OECD countries
+
+```{r}
+var_fc = predict(var_cho, n.ahead= 4)
+exp (var_fc$fcst$Sales[,1])
+```
+Above is the forecast from the var method.
+\pagebreak
+```{r}
+
+```
+\newpage
+# Comparison
+
+Different forecast methods will be compared quantitatively. Based on which a method will be selected for making the forecast. The forecast based on the training data set will be compared with test data set and accuracy will be measures. The outcome of the exercise will be a table showing different forecast accuracy measures for forecast methods. 
+
+We will use MAPE as the decisive criteria to pick the best method.
+
+Based on the earlier plots, we will exclude methods like compare mean, naive, linear trend without seasonality, simple exponential. The comparison will concentrate on the following methods seasonal_naive, Linear trend with seasonality, STL with random drift, ETS, Holt-Winters, and ARIMA.
+
+```{r}
+#Accuracy for 
+acr_y_sn=round(accuracy(f_y_sn,y_test),2)
+acr_y_lts = round(accuracy(f_y_lts,y_test),2)
+acr_y_stl = round(accuracy(f_y_stl,y_test),2)
+acr_y_ets = round(accuracy(f_y_ets,y_test),2)
+acr_y_hw = round(accuracy(f_y_hw,y_test),2)
+acr_y_arima = round(accuracy(f_y_arima,y_test),2)
+
+#Combine the Table
+a.table<-rbind(acr_y_sn,acr_y_lts,acr_y_stl,acr_y_ets,acr_y_hw,acr_y_arima)
+
+row.names(a.table)<-c('Sea Naive Train', 'Sea Naive Test','Linear Trend Train', 'Linear Trend Test', 'STL Train', 'STL Test','ETS Train', 'ETS Test', 'Holt Winter Train', 'Holt Winter Test', 'ARIMA Train', 'ARIMA Test')
+
+# order the table according to MASE
+a.table<-as.data.frame(a.table)
+
+a.table<-a.table[order(a.table$MAPE),]
+a.table
+```
+Most of the forecasting methods yield very close prediction. Holt Winters, ETS and Seasonal Naive are the top three ones.
+
+Based on the Table, **Holt-Winter method yields best forecast** based on MAPE.
+
+Let’s look at residuals for this method.
+
+```{r}
+r_f_y <- ts(resid(f_y_hw),s = 2003, f = 4)
+plot.ts(r_f_y, ylab = "res (Nestle Chocolate Sales)")
+abline(0, 0)
+acf(r_f_y)
+```
+These residual diagnostic shows mean of the residuals is close to zero and the time plot of the residuals shows that the variation of the residuals stays much the same across the historical data other than in 2011 and 2013.
+There is some correlation still in the residuals series as shown by the ACF. 
+
+\pagebreak
+```{r}
+
+```
+# Result
+Here is the forecast of Nestle Chocolate sale following Holt-Winters Method
+```{r}
+y.f <- forecast(hw(y, seasonal="additive", h=h)) 
+plot(y.f,col='blue', main='Nestle Chocolate Sale Forecast', ylab="Million CHF",type='p',lty=2)
+lines(y,col='blue')
+```
+The forecase is in line with recent trend and seasonality. However it is a very bad news for Nestle. Their peak sales forecast has dropped below their 5 years before weakest sale 
+
+Lets look at the sales number
+```{r}
+y.f$mean
+
+```
+Although the forecast looks fair enough, the limitation are acf show still there is some corelation in the residulas. As there is significant change in sale post 2010, a alternative forecast by considering only post 2010 data would have been great.
+
+
+
+\pagebreak
+```{r}
+
+```
+
+# Bibilography 
+1. Nate Derby (2009) Time Series Forecasting Methods presented at Calgary SAS Users Group
+2. C. Chatfield (1988) What is the 'best' method of forecasting?, Journal of
+Applied Statistics, 15:1, 19-38, DOI: 10.1080/02664768800000003
+3. Rob J Hyndman and George Athana?sopou?los Forecasting: principles and practice  
+
+  
+  
+      *Prepared completely in R using RMarkdown, yaml, and MikTex packages*
+
